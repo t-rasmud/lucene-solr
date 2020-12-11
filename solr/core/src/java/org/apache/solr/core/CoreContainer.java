@@ -148,6 +148,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
@@ -1922,13 +1923,17 @@ public class CoreContainer implements Closeable {
 
       if (core != null) {
         SolrCore finalCore = core;
-        solrCoreCloseExecutor.submit(() -> {
-          try {
-            finalCore.closeAndWait();
-          } catch (Exception e) {
-            log.error("Exception closing failed core", e);
-          }
-        });
+        try {
+          solrCoreCloseExecutor.submit(() -> {
+            try {
+              finalCore.closeAndWait();
+            } catch (Exception e) {
+              log.error("Exception closing failed core", e);
+            }
+          });
+        } catch (RejectedExecutionException e) {
+          finalCore.closeAndWait();
+        }
       }
 
       if (exception != null) {
