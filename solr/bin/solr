@@ -170,7 +170,7 @@ fi
 
 # Select HTTP OR HTTPS related configurations
 SOLR_URL_SCHEME=http
-SOLR_JETTY_CONFIG=()
+SOLR_JETTY_CONFIG=("--module=quickstart")
 SOLR_SSL_OPTS=""
 
 if [ -n "$SOLR_HADOOP_CREDENTIAL_PROVIDER_PATH" ]; then
