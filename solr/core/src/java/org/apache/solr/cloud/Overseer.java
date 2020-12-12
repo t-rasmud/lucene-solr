@@ -337,7 +337,7 @@ public class Overseer implements SolrCloseable {
     ThreadGroup ccTg = new ThreadGroup("Overseer collection creation process.");
 
 
-    this.zkStateWriter = new ZkStateWriter( zkController.getZkStateReader(), stats);
+    this.zkStateWriter = new ZkStateWriter(zkController.getZkStateReader(), stats);
     //systemCollectionCompatCheck(new StringBiConsumer());
 
     queueWatcher = new WorkQueueWatcher(getCoreContainer());
@@ -538,15 +538,8 @@ public class Overseer implements SolrCloseable {
         overseerOnlyClient = null;
       }
 
-      if (taskExecutor != null && taskExecutor.isShutdown() && !taskExecutor.isTerminated()) {
-        try {
-          taskExecutor.awaitTermination(5, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
-
-        }
-
+      if (taskExecutor != null) {
         taskExecutor.shutdownNow();
-       // ExecutorUtil.shutdownAndAwaitTermination(taskExecutor);
       }
 
     }

@@ -542,17 +542,11 @@ public class ZkController implements Closeable, Runnable {
     });
     zkClient.setDisconnectListener(() -> {
       try (ParWork worker = new ParWork("disconnected", true, true)) {
-        worker.collect(ZkController.this.overseerElector);
         worker.collect(ZkController.this.overseer);
-
+        worker.collect(leaderElectors.values());
         worker.collect("clearZkCollectionTerms", () -> {
           clearZkCollectionTerms();
         });
-        if (zkClient.isAlive()) {
-          synchronized (leaderElectors) {
-            worker.collect(leaderElectors.values());
-          }
-        }
       }
 
     });
@@ -652,9 +646,7 @@ public class ZkController implements Closeable, Runnable {
         }
       }
 
-      synchronized (leaderElectors) {
-        closer.collect(leaderElectors);
-      }
+      closer.collect(leaderElectors);
 
       closer.collect(overseerElector);
 
@@ -678,9 +670,7 @@ public class ZkController implements Closeable, Runnable {
       });
 
     } finally {
-      synchronized (leaderElectors) {
-        leaderElectors.clear();
-      }
+      leaderElectors.clear();
     }
   }
 
@@ -695,9 +685,7 @@ public class ZkController implements Closeable, Runnable {
 
     this.isClosed = true;
     try (ParWork closer = new ParWork(this, true, true)) {
-      synchronized (leaderElectors) {
-        closer.collect(leaderElectors);
-      }
+      closer.collect(leaderElectors);
       collectionToTerms.forEach((s, zkCollectionTerms) -> closer.collect(zkCollectionTerms));
     }
 
@@ -1357,7 +1345,6 @@ public class ZkController implements Closeable, Runnable {
       throw new AlreadyClosedException();
     }
 
-    boolean success = false;
     try {
       final String baseUrl = getBaseUrl();
       final CloudDescriptor cloudDesc = desc.getCloudDescriptor();
@@ -1406,7 +1393,7 @@ public class ZkController implements Closeable, Runnable {
       }
 
       log.info("Register replica - core:{} address:{} collection:{} shard:{} type={}", coreName, baseUrl, collection, shardId, replica.getType());
-      synchronized (leaderElectors) {
+
         LeaderElector leaderElector = leaderElectors.get(replica.getName());
         if (leaderElector == null) {
           ContextKey contextKey = new ContextKey(collection, coreName);
@@ -1418,7 +1405,7 @@ public class ZkController implements Closeable, Runnable {
           LeaderElector oldElector = leaderElectors.put(replica.getName(), leaderElector);
           IOUtils.closeQuietly(oldElector);
         }
-      }
+
 
       //
       try {
@@ -1427,12 +1414,6 @@ public class ZkController implements Closeable, Runnable {
         if (replica.getType() != Type.PULL) {
           // nocommit review
           joinElection(desc, joinAtHead);
-        } else if (replica.getType() == Type.PULL) {
-          if (joinAtHead) {
-            log.warn("Replica {} was designated as preferred leader but it's type is {}, It won't join election", coreName, Type.PULL);
-          }
-          log.debug("Replica {} skipping election because it's type is {}", coreName, Type.PULL);
-          startReplicationFromLeader(coreName, false);
         }
       } catch (InterruptedException e) {
         ParWork.propagateInterrupt(e);
@@ -1502,17 +1483,19 @@ public class ZkController implements Closeable, Runnable {
         }
       }
 
-      boolean didRecovery = checkRecovery(isLeader, collection, coreName, shardId, core, cc);
+    //  boolean didRecovery = checkRecovery(isLeader, collection, coreName, shardId, core, cc);
 
-      if (!didRecovery) {
-        if (isTlogReplicaAndNotLeader) {
-          startReplicationFromLeader(coreName, true);
-        }
-
-        if (!isLeader) {
-          publish(desc, Replica.State.ACTIVE, true);
-        }
+      if (isTlogReplicaAndNotLeader) {
+        startReplicationFromLeader(coreName, true);
       }
+
+      if (replica.getType() == Type.PULL) {
+        startReplicationFromLeader(coreName, false);
+      }
+
+      //        if (!isLeader) {
+      //          publish(desc, Replica.State.ACTIVE, true);
+      //        }
 
       if (replica.getType() != Type.PULL) {
         // the watcher is added to a set so multiple calls of this method will left only one watcher
@@ -1527,7 +1510,6 @@ public class ZkController implements Closeable, Runnable {
       registerUnloadWatcher(cloudDesc.getCollectionName(), cloudDesc.getShardId(), desc.getName());
 
       log.info("SolrCore Registered, core{} baseUrl={} collection={}, shard={}", coreName, baseUrl, collection, shardId);
-      success = true;
       return shardId;
     } finally {
       MDCLoggingContext.clear();
@@ -1667,16 +1649,14 @@ public class ZkController implements Closeable, Runnable {
     Replica replica = new Replica(cd.getName(), props, collection, shardId, zkStateReader);
     LeaderElector leaderElector;
 
-    synchronized (leaderElectors) {
-       leaderElector = leaderElectors.get(replica.getName());
-      if (leaderElector == null) {
-        ContextKey contextKey = new ContextKey(collection, replica.getName());
-        leaderElector = new LeaderElector(this, contextKey);
-        LeaderElector oldElector = leaderElectors.put(replica.getName(), leaderElector);
-        IOUtils.closeQuietly(oldElector);
-      } else {
-        leaderElector.cancel();
-      }
+    leaderElector = leaderElectors.get(replica.getName());
+    if (leaderElector == null) {
+      ContextKey contextKey = new ContextKey(collection, replica.getName());
+      leaderElector = new LeaderElector(this, contextKey);
+      LeaderElector oldElector = leaderElectors.put(replica.getName(), leaderElector);
+      IOUtils.closeQuietly(oldElector);
+    } else {
+      leaderElector.cancel();
     }
 
     ElectionContext context = new ShardLeaderElectionContext(leaderElector, shardId,
@@ -1798,10 +1778,7 @@ public class ZkController implements Closeable, Runnable {
       if (state == Replica.State.RECOVERING && cd.getCloudDescriptor().getReplicaType() != Type.PULL) {
         // state is used by client, state of replica can change from RECOVERING to DOWN without needed to finish recovery
         // by calling this we will know that a replica actually finished recovery or not
-        ZkShardTerms shardTerms = getShardTermsOrNull(collection, shardId);
-        if (shardTerms == null) {
-          throw new AlreadyClosedException();
-        }
+        ZkShardTerms shardTerms = getShardTerms(collection, shardId);
         shardTerms.startRecovering(cd.getName());
       }
       if (state == Replica.State.ACTIVE && cd.getCloudDescriptor().getReplicaType() != Type.PULL) {
@@ -1886,7 +1863,6 @@ public class ZkController implements Closeable, Runnable {
         ZkCollectionTerms ct = collectionToTerms.get(collection);
         if (ct != null) {
           ct.remove(cd.getCloudDescriptor().getShardId(), cd);
-          if (ct.cleanUp()) IOUtils.closeQuietly(collectionToTerms.remove(collection));
         }
 
       } finally {

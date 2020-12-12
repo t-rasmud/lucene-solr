@@ -32,6 +32,7 @@ import org.apache.zookeeper.KeeperException.ConnectionLossException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.Watcher.Event.EventType;
+import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -113,7 +114,7 @@ public class LeaderElector implements Closeable {
    *
    * @param replacement has someone else been the leader already?
    */
-  private boolean checkIfIamLeader(final ElectionContext context, boolean replacement) throws KeeperException,
+  private synchronized boolean checkIfIamLeader(final ElectionContext context, boolean replacement) throws KeeperException,
           InterruptedException, IOException {
     //if (checkClosed(context)) return false;
 
@@ -209,7 +210,8 @@ public class LeaderElector implements Closeable {
           if (context.leaderSeqPath == null) {
             throw new SolrException(SolrException.ErrorCode.SERVER_ERROR, "Election has been cancelled");
           }
-          zkClient.exists(watchedNode, watcher = new ElectionWatcher(context.leaderSeqPath, watchedNode, context));
+          watcher = new ElectionWatcher(context.leaderSeqPath, watchedNode, context);
+          zkClient.exists(watchedNode, watcher);
           state = WAITING_IN_ELECTION;
           if (log.isDebugEnabled()) log.debug("Watching path {} to know if I could be the leader, my node is {}", watchedNode, context.leaderSeqPath);
           try (SolrCore core = zkController.getCoreContainer().getCore(context.leaderProps.getName())) {
@@ -547,16 +549,22 @@ public class LeaderElector implements Closeable {
         return;
       }
       try {
-        // am I the next leader?
-        boolean tryagain = checkIfIamLeader(context, true);
-        if (tryagain) {
-          Thread.sleep(50);
-          tryagain = checkIfIamLeader(context, true);
-        }
+        if (event.getType() == EventType.NodeDeleted) {
+          // am I the next leader?
+          boolean tryagain = true;
+          while (tryagain) {
+            tryagain = checkIfIamLeader(context, true);
+          }
+        } else {
+          Stat exists = zkClient.exists(watchedNode, this);
+          if (exists == null) {
+            close();
+            boolean tryagain = true;
 
-        if (tryagain) {
-          Thread.sleep(50);
-          checkIfIamLeader(context, true);
+            while (tryagain) {
+              tryagain = checkIfIamLeader(context, true);
+            }
+          }
         }
       } catch (AlreadyClosedException | InterruptedException e) {
         log.info("Already shutting down");

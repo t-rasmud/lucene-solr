@@ -1928,15 +1928,13 @@ public final class SolrCore implements SolrInfoBean, Closeable {
         throw new SolrException(ErrorCode.SERVER_ERROR, e);
       }
     } finally {
-      log.info("close done refcount {} {}", refCount == null ? null : refCount.get(), name);
+      if (log.isDebugEnabled()) log.debug("close done refcount {} {}", refCount == null ? null : refCount.get(), name);
       refCount.set(-1);
       if (reloadLock != null && reloadLock.isHeldByCurrentThread()) reloadLock.unlock();
       assert ObjectReleaseTracker.release(this);
       infoRegistry.clear();
 
       //areAllSearcherReferencesEmpty();
-
-
 
       synchronized (closeAndWait) {
         closeAndWait.notifyAll();

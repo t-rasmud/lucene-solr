@@ -895,6 +895,13 @@ public class ZkStateReader implements SolrCloseable, Replica.NodeNameToBaseUrl {
     if (log.isDebugEnabled()) log.debug("Closing ZkStateReader");
     if (closeTracker != null) closeTracker.close();
     this.closed = true;
+
+    synchronized (this) {
+      if (collectionPropsCacheCleaner != null) {
+        collectionPropsCacheCleaner.cancel(true);
+      }
+    }
+
     if (notifications != null) {
       notifications.shutdown();
     }
@@ -902,28 +909,23 @@ public class ZkStateReader implements SolrCloseable, Replica.NodeNameToBaseUrl {
     stateWatchersMap.forEach((s, stateWatcher) -> IOUtils.closeQuietly(stateWatcher));
     stateWatchersMap.clear();
 
-    waitLatches.forEach(c -> { for (int i = 0; i < c.getCount(); i++) c.countDown(); });
-    waitLatches.clear();
-
     try {
       if (closeClient) {
         IOUtils.closeQuietly(zkClient);
       }
       try {
         if (collectionPropsCacheCleaner != null) {
-          collectionPropsCacheCleaner.cancel(true);
+          collectionPropsCacheCleaner.cancel(false);
         }
       } catch (NullPointerException e) {
         // okay
       }
       if (notifications != null) {
-        try {
-          boolean success = notifications.awaitTermination(1, TimeUnit.SECONDS);
-          if (!success) notifications.shutdownNow();
-        } catch (InterruptedException e) {
-          ParWork.propagateInterrupt(e);
-        }
+        notifications.shutdownNow();
       }
+
+      waitLatches.forEach(c -> { for (int i = 0; i < c.getCount(); i++) c.countDown(); });
+      waitLatches.clear();
 
     } finally {
       assert ObjectReleaseTracker.release(this);
@@ -2028,7 +2030,7 @@ public class ZkStateReader implements SolrCloseable, Replica.NodeNameToBaseUrl {
     try {
 
       // wait for the watcher predicate to return true, or time out
-      if (!latch.await(wait, unit)) {
+      if (!latch.await(wait, unit) || isClosed()) {
         throw new TimeoutException("Timeout waiting to see state for collection=" + collection + " :" + "live=" + liveNodes
                 + docCollection.get());
       }

@@ -435,8 +435,6 @@ public class Http2SolrClient extends SolrClient {
 
   public Cancellable asyncRequest(@SuppressWarnings({"rawtypes"}) SolrRequest solrRequest, String collection, AsyncListener<NamedList<Object>> asyncListener) {
     Integer idleTimeout = solrRequest.getParams().getInt("idleTimeout");
-
-
     Request req;
     try {
       req = makeRequest(solrRequest, collection);
@@ -1451,43 +1449,39 @@ public class Http2SolrClient extends SolrClient {
         try {
           asyncListener.onSuccess(stream);
         } catch (Exception e) {
-          if (stream != null) {
-            try {
-              while (stream.read() != -1) {
-              }
-            } catch (IOException e1) {
-              // quietly
-            }
-          }
-          if (SolrException.getRootCause(e) != CANCELLED_EXCEPTION) {
-            asyncListener.onFailure(e);
-          }
+          log.error("Exception in async stream listener",e);
         }
       });
     }
 
     public void onComplete(Result result) {
-
-      super.onComplete(result);
-
-      if (stream != null) {
+      try {
+        super.onComplete(result);
+      } finally {
         try {
-          while (stream.read() != -1) {
+          if (stream != null) {
+            try {
+              while (stream.read() != -1) {
+              }
+            } catch (IOException e) {
+              // quietly
+            }
           }
-        } catch (IOException e) {
-          // quietly
+        } finally {
+          if (result.isFailed()) {
+            Throwable failure = result.getFailure();
+
+            if (failure != CANCELLED_EXCEPTION) { // avoid retrying on load balanced search requests - keep in mind this
+              // means cancelled requests won't notify the caller of fail or complete
+              try {
+                asyncListener.onFailure(new SolrServerException(failure.getMessage(), failure));
+              } catch (Exception e) {
+                log.error("Exception in async failure listener",e);
+              }
+            }
+          }
         }
       }
-
-      if (result.isFailed()) {
-        Throwable failure = result.getFailure();
-
-        if (failure != CANCELLED_EXCEPTION) { // avoid retrying on load balanced search requests - keep in mind this
-          // means cancelled requests won't notify the caller of fail or complete
-          asyncListener.onFailure(new SolrServerException(failure.getMessage(), failure));
-        }
-      }
-
     }
   }
 }
