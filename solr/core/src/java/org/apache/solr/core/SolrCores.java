@@ -403,7 +403,7 @@ class SolrCores implements Closeable {
       while (isCoreLoading(core)) {
         synchronized (loadingSignal) {
           try {
-            loadingSignal.wait(1000);
+            loadingSignal.wait(250);
           } catch (InterruptedException e) {
             ParWork.propagateInterrupt(e);
             return;
@@ -417,7 +417,7 @@ class SolrCores implements Closeable {
   }
 
   public boolean isCoreLoading(String name) {
-    if (container.startedLoadingCores() && currentlyLoadingCores.contains(name)) {
+    if (currentlyLoadingCores.contains(name)) {
       return true;
     }
     return false;

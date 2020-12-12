@@ -166,9 +166,9 @@ public class OverseerTaskQueue extends ZkDistributedQueue {
         try {
           Stat stat = zkClient.exists(path, this, true);
           if (stat != null && stat.getDataLength() > 0) {
-            this.event = new WatchedEvent(Event.EventType.NodeDataChanged, Event.KeeperState.SyncConnected, path);
             lock.lock();
             try {
+              this.event = new WatchedEvent(Event.EventType.NodeDataChanged, Event.KeeperState.SyncConnected, path);
               eventReceived.signalAll();
             } finally {
               lock.unlock();
@@ -180,15 +180,16 @@ public class OverseerTaskQueue extends ZkDistributedQueue {
       }
     }
 
-    public void await(long timeoutMs) throws InterruptedException {
+    public void await(long timeoutMs) {
       TimeOut timeout = new TimeOut(timeoutMs, TimeUnit.MILLISECONDS, TimeSource.NANO_TIME);
       lock.lock();
       try {
-        if (this.event != null) {
-          return;
-        }
         while (!timeout.hasTimedOut() && event == null && !closed) {
-          eventReceived.await(500, TimeUnit.MILLISECONDS);
+          try {
+            eventReceived.await(500, TimeUnit.MILLISECONDS);
+          } catch (InterruptedException e) {
+
+          }
         }
 
         if (timeout.hasTimedOut()) {
@@ -207,7 +208,7 @@ public class OverseerTaskQueue extends ZkDistributedQueue {
     public void close() throws IOException {
       this.closed = true;
       try {
-        zkClient.getSolrZooKeeper().removeWatches(path, this, Watcher.WatcherType.Any, true);
+        zkClient.getSolrZooKeeper().removeWatches(path, this, WatcherType.Data, true);
       } catch (Exception e) {
         log.info("could not remove watch {} {}", e.getClass().getSimpleName(), e.getMessage());
       }

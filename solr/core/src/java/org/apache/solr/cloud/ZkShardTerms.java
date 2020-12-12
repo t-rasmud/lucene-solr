@@ -326,7 +326,7 @@ public class ZkShardTerms implements AutoCloseable{
       log.info("Failed to save terms, version is not a match, retrying version={}", newTerms.getVersion());
       refreshTerms();
     } catch (KeeperException.NoNodeException e) {
-      throw e;
+      return true;
     } catch (Exception e) {
       ParWork.propagateInterrupt(e);
       throw new SolrException(SolrException.ErrorCode.SERVER_ERROR, "Error while saving shard term for collection: " + collection, e);
@@ -348,7 +348,7 @@ public class ZkShardTerms implements AutoCloseable{
     } catch (KeeperException.NoNodeException e) {
       log.warn("No node found for shard terms", e);
       // we have likely been deleted
-      throw new AlreadyClosedException(e);
+      return;
     } catch (InterruptedException e) {
       ParWork.propagateInterrupt(e);
       throw new SolrException(SolrException.ErrorCode.SERVER_ERROR, "Error updating shard term for collection: " + collection, e);

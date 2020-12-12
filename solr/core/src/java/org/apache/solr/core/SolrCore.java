@@ -1769,15 +1769,15 @@ public final class SolrCore implements SolrInfoBean, Closeable {
           coreContainer.getZkController().removeShardLeaderElector(name);
         }
 
-        int noops = searcherExecutor.getPoolSize() - searcherExecutor.getActiveCount();
-        for (int i = 0; i < noops + 1; i++) {
-          try {
-            searcherExecutor.submit(() -> {
-            });
-          } catch (RejectedExecutionException e) {
-            break;
-          }
-        }
+//        int noops = searcherExecutor.getPoolSize() - searcherExecutor.getActiveCount();
+//        for (int i = 0; i < noops + 1; i++) {
+//          try {
+//            searcherExecutor.submit(() -> {
+//            });
+//          } catch (RejectedExecutionException e) {
+//            break;
+//          }
+//        }
 
         searcherExecutor.shutdown();
 
@@ -3310,20 +3310,27 @@ public final class SolrCore implements SolrInfoBean, Closeable {
       log.info("Removing SolrCore dataDir on unload {}", cd.getInstanceDir().resolve(cd.getDataDir()));
       Path dataDir = cd.getInstanceDir().resolve(cd.getDataDir());
       try {
-        if (Files.exists(dataDir)) {
-          Files.walk(dataDir).sorted(Comparator.reverseOrder()).map(Path::toFile).forEach(File::delete);
-        }
+          while (Files.exists(dataDir)) {
+            try {
+              Files.walk(dataDir).sorted(Comparator.reverseOrder()).map(Path::toFile).forEach(File::delete);
+            } catch (NoSuchFileException e) {
 
-      } catch (Exception e) {
-        log.error("Failed to delete data dir for unloaded core: {} dir: {}", cd.getName(), dataDir, e);
-      }
+            }
+          }
+        } catch (IOException e) {
+          log.error("Failed to delete data dir for unloaded core: {} dir: {}", cd.getName(), dataDir, e);
+        }
     }
     if (deleteInstanceDir) {
       try {
-        if (Files.exists(cd.getInstanceDir())) {
-          Files.walk(cd.getInstanceDir()).sorted(Comparator.reverseOrder()).map(Path::toFile).forEach(File::delete);
+        while (Files.exists(cd.getInstanceDir())) {
+          try {
+            Files.walk(cd.getInstanceDir()).sorted(Comparator.reverseOrder()).map(Path::toFile).forEach(File::delete);
+          } catch (NoSuchFileException e) {
+
+          }
         }
-      } catch (Exception e) {
+      } catch (IOException e) {
         log.error("Failed to delete instance dir for unloaded core: {} dir: {}", cd.getName(), cd.getInstanceDir(), e);
       }
     }

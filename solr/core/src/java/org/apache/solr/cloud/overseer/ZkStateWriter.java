@@ -532,6 +532,8 @@ public class ZkStateWriter {
       trackVersions.remove(collection);
       reader.getZkClient().delete(ZkStateReader.getCollectionSCNPath(collection), -1);
       reader.getZkClient().delete(ZkStateReader.getCollectionStateUpdatesPath(collection), -1);
+    } catch (KeeperException.NoNodeException e) {
+
     } catch (InterruptedException e) {
       log.error("", e);
     } catch (KeeperException e) {

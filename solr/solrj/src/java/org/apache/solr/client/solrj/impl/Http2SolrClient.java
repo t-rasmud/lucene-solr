@@ -217,7 +217,7 @@ public class Http2SolrClient extends SolrClient {
       ssl = true;
     }
     // nocommit - look at config again as well
-    int minThreads = Integer.getInteger("solr.minHttp2ClientThreads", 12);
+    int minThreads = Integer.getInteger("solr.minHttp2ClientThreads", 6);
     httpClientExecutor = new SolrQueuedThreadPool("http2Client", builder.maxThreadPoolSize, minThreads,
         this.headers != null && this.headers.containsKey(QoSParams.REQUEST_SOURCE) && this.headers.get(QoSParams.REQUEST_SOURCE).equals(QoSParams.INTERNAL) ? 3000 : 5000,
         null, -1, null);
@@ -434,9 +434,15 @@ public class Http2SolrClient extends SolrClient {
   private static final Cancellable FAILED_MAKING_REQUEST_CANCELLABLE = () -> {};
 
   public Cancellable asyncRequest(@SuppressWarnings({"rawtypes"}) SolrRequest solrRequest, String collection, AsyncListener<NamedList<Object>> asyncListener) {
+    Integer idleTimeout = solrRequest.getParams().getInt("idleTimeout");
+
+
     Request req;
     try {
       req = makeRequest(solrRequest, collection);
+      if (idleTimeout != null) {
+        req.idleTimeout(idleTimeout, TimeUnit.MILLISECONDS);
+      }
     } catch (Exception e) {
       asyncListener.onFailure(e);
       return FAILED_MAKING_REQUEST_CANCELLABLE;
@@ -1094,12 +1100,12 @@ public class Http2SolrClient extends SolrClient {
   public static class Builder {
 
     public int maxThreadPoolSize = Integer.getInteger("solr.maxHttp2ClientThreads", 512);
-    public int maxRequestsQueuedPerDestination = 512;
+    public int maxRequestsQueuedPerDestination = 1600;
     private Http2SolrClient http2SolrClient;
     private SSLConfig sslConfig = defaultSSLConfig;
     private Integer idleTimeout = Integer.getInteger("solr.http2solrclient.default.idletimeout", 120000);
     private Integer connectionTimeout;
-    private Integer maxConnectionsPerHost = 6;
+    private Integer maxConnectionsPerHost = 16;
     private boolean useHttp1_1 = Boolean.getBoolean("solr.http1");
     protected String baseSolrUrl;
     protected Map<String,String> headers = new ConcurrentHashMap<>();

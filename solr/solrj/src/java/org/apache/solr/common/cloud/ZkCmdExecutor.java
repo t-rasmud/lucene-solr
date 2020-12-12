@@ -28,7 +28,7 @@ public class ZkCmdExecutor {
   private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
   private final SolrZkClient solrZkClient;
 
-  private long retryDelay = 50L;
+  private long retryDelay = 500L;
   private int retryCount;
   private IsClosed isClosed;
   

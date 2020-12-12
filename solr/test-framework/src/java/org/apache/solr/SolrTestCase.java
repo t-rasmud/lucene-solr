@@ -883,7 +883,7 @@ public class SolrTestCase extends LuceneTestCase {
       if (testExecutor != null) {
         return testExecutor;
       }
-      testExecutor = (ParWorkExecutor) ParWork.getParExecutorService("testExecutor", 10, 100, 500, new BlockingArrayQueue(30, 16));
+      testExecutor = (ParWorkExecutor) ParWork.getParExecutorService("testExecutor", 3, 100, 500, new BlockingArrayQueue(30, 16));
       ((ParWorkExecutor) testExecutor).enableCloseLock();
       return testExecutor;
     }

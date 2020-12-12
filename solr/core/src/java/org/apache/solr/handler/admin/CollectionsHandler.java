@@ -246,7 +246,7 @@ public class CollectionsHandler extends RequestHandlerBase implements Permission
 
   protected void copyFromClusterProp(Map<String, Object> props, String prop) throws IOException {
     if (props.get(prop) != null) return;//if it's already specified , return
-    Object defVal = new ClusterProperties(coreContainer.getZkController().getZkStateReader().getZkClient())
+    Object defVal = new ClusterProperties(coreContainer.getZkController().getZkClient())
         .getClusterProperty(ImmutableList.of(CollectionAdminParams.DEFAULTS, CollectionAdminParams.COLLECTION, prop), null);
     if (defVal != null) props.put(prop, String.valueOf(defVal));
   }
@@ -474,7 +474,7 @@ public class CollectionsHandler extends RequestHandlerBase implements Permission
   }
 
   private static void createSysConfigSet(CoreContainer coreContainer) throws KeeperException, InterruptedException {
-    SolrZkClient zk = coreContainer.getZkController().getZkStateReader().getZkClient();
+    SolrZkClient zk = coreContainer.getZkController().getZkClient();
     zk.mkdir(ZkStateReader.CONFIGS_ZKNODE + "/" + CollectionAdminParams.SYSTEM_COLL);
 
     try {
