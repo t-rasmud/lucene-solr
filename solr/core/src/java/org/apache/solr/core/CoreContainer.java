@@ -1546,9 +1546,13 @@ public class CoreContainer implements Closeable {
               getZkController().getShardTerms(desc.getCollectionName(), desc.getShardId()).setTermToZero(dcore.getName());
               return new SolrCore(this, dcore, coreConfig);
             }
-          } catch (SolrException se) {
+          } catch (Exception se) {
             se.addSuppressed(original);
-            throw se;
+            if (se instanceof  SolrException) {
+              throw (SolrException) se;
+            } else {
+              throw new SolrException(ErrorCode.SERVER_ERROR, se);
+            }
           }
         }
         if (original instanceof RuntimeException) {

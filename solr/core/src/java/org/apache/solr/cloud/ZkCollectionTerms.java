@@ -20,6 +20,7 @@ package org.apache.solr.cloud;
 import org.apache.solr.common.cloud.SolrZkClient;
 import org.apache.solr.common.util.ObjectReleaseTracker;
 import org.apache.solr.core.CoreDescriptor;
+import org.apache.zookeeper.KeeperException;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -43,7 +44,7 @@ class ZkCollectionTerms implements AutoCloseable {
     assert ObjectReleaseTracker.track(this);
   }
 
-  ZkShardTerms getShard(String shardId) {
+  ZkShardTerms getShard(String shardId) throws Exception {
     collectionToTermsLock.lock();
     try {
       if (!terms.containsKey(shardId)) {
@@ -65,11 +66,11 @@ class ZkCollectionTerms implements AutoCloseable {
     }
   }
 
-  public void register(String shardId, String coreNodeName) {
+  public void register(String shardId, String coreNodeName) throws Exception {
     getShard(shardId).registerTerm(coreNodeName);
   }
 
-  public void remove(String shardId, CoreDescriptor coreDescriptor) {
+  public void remove(String shardId, CoreDescriptor coreDescriptor) throws KeeperException, InterruptedException {
     collectionToTermsLock.lock();
     try {
       ZkShardTerms zterms = getShardOrNull(shardId);

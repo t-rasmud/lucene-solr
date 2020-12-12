@@ -28,7 +28,6 @@ import org.apache.solr.common.AlreadyClosedException;
 import org.apache.solr.common.ParWork;
 import org.apache.solr.common.SolrException;
 import org.apache.solr.common.SolrException.ErrorCode;
-import org.apache.solr.common.cloud.BeforeReconnect;
 import org.apache.solr.common.cloud.ClusterState;
 import org.apache.solr.common.cloud.ConnectionManager;
 import org.apache.solr.common.cloud.DefaultZkACLProvider;
@@ -1674,7 +1673,7 @@ public class ZkController implements Closeable, Runnable {
    */
   private boolean checkRecovery(final boolean isLeader,
                                 final String collection, String coreZkNodeName, String shardId,
-                                SolrCore core, CoreContainer cc) {
+                                SolrCore core, CoreContainer cc) throws Exception {
     boolean doRecovery = true;
     if (!isLeader) {
 
@@ -1800,7 +1799,7 @@ public class ZkController implements Closeable, Runnable {
     statePublisher.submitState(message);
   }
 
-  public ZkShardTerms getShardTerms(String collection, String shardId) {
+  public ZkShardTerms getShardTerms(String collection, String shardId) throws Exception {
     ZkCollectionTerms ct = getCollectionTerms(collection);
     if (ct == null) {
       throw new AlreadyClosedException();
@@ -1854,7 +1853,7 @@ public class ZkController implements Closeable, Runnable {
     }
   }
 
-  public void unregister(String coreName, CoreDescriptor cd) {
+  public void unregister(String coreName, CoreDescriptor cd) throws KeeperException, InterruptedException {
     log.info("Unregister core from zookeeper {}", coreName);
     final String collection = cd.getCloudDescriptor().getCollectionName();
     try {

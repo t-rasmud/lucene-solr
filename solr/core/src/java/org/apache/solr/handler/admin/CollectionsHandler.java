@@ -76,7 +76,6 @@ import org.apache.solr.response.SolrQueryResponse;
 import org.apache.solr.security.AuthorizationContext;
 import org.apache.solr.security.PermissionNameProvider;
 import org.apache.zookeeper.KeeperException;
-import org.eclipse.jetty.rewrite.handler.Rule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -1380,7 +1379,13 @@ public class CollectionsHandler extends RequestHandlerBase implements Permission
         //TODO only increase terms of replicas less out-of-sync
         liveReplicas.stream()
             .filter(rep -> zkShardTerms.registered(rep.getName()))
-            .forEach(rep -> zkShardTerms.setTermEqualsToLeader(rep.getName()));
+            .forEach(rep -> {
+              try {
+                zkShardTerms.setTermEqualsToLeader(rep.getName());
+              } catch (Exception e) {
+                log.error("Exception in shard terms", e);
+              }
+            });
       }
 
       // Wait till we have an active leader
