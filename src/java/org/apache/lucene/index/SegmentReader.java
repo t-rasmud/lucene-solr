@@ -38,6 +38,8 @@ import org.apache.lucene.store.IndexOutput;
 import org.apache.lucene.util.BitVector;
 import org.apache.lucene.util.CloseableThreadLocal;
 
+import org.checkerframework.dataflow.qual.SideEffectFree;
+
 /** @version $Id */
 /**
  * <p><b>NOTE:</b> This API is new and still experimental
@@ -1202,6 +1204,7 @@ public class SegmentReader extends IndexReader implements Cloneable {
     return tvReader;
   }
 
+  @SideEffectFree
   TermVectorsReader getTermVectorsReaderOrig() {
     return core.getTermVectorsReaderOrig();
   }

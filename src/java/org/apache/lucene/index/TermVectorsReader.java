@@ -24,6 +24,8 @@ import org.apache.lucene.store.IndexInput;
 import java.io.IOException;
 import java.util.Arrays;
 
+import org.checkerframework.dataflow.qual.SideEffectFree;
+
 /**
  * @version $Id$
  */
@@ -141,6 +143,7 @@ class TermVectorsReader implements Cloneable {
       tvx.seek((docNum + docStoreOffset) * 16L + FORMAT_SIZE);
   }
 
+  @SideEffectFree
   boolean canReadRawDocs() {
     return format >= FORMAT_UTF8_LENGTH_IN_BYTES;
   }

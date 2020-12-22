@@ -1,0 +1,65 @@
+Buildfile: /Users/rashmi/iteration-case-studies/lucene-solr/build.xml
+
+clean:
+   [delete] Deleting directory /Users/rashmi/iteration-case-studies/lucene-solr/build
+
+javacc-uptodate-check:
+
+javacc-notice:
+
+jflex-uptodate-check:
+
+jflex-notice:
+
+init:
+
+clover.setup:
+
+clover.info:
+     [echo] 
+     [echo]       Clover not found. Code coverage reports disabled.
+     [echo]   	
+
+clover:
+
+check-iteration:
+    [mkdir] Created dir: /Users/rashmi/iteration-case-studies/lucene-solr/build/classes/java
+[jsr308.javac] /Users/rashmi/iteration-case-studies/lucene-solr/common-build.xml:598: warning: 'includeantruntime' was not set, defaulting to build.sysclasspath=last; set to false for repeatable builds
+[jsr308.javac] Compiling 413 source files to /Users/rashmi/iteration-case-studies/lucene-solr/build/classes/java
+[jsr308.javac] javac (version info not available)
+[jsr308.javac] /Users/rashmi/iteration-case-studies/lucene-solr/src/java/org/apache/lucene/util/AttributeSource.java:294: error: [method.invocation.invalid] call to next() not allowed on the given receiver.
+[jsr308.javac]     c.attribute = (AttributeImpl) it.next();
+[jsr308.javac]                                          ^
+[jsr308.javac]   found   : @UnknownHasNext Iterator
+[jsr308.javac]   required: @HasNext Iterator
+[jsr308.javac] /Users/rashmi/iteration-case-studies/lucene-solr/src/java/org/apache/lucene/document/Document.java:184: error: [method.invocation.invalid] call to next() not allowed on the given receiver.
+[jsr308.javac]         return iter.next();
+[jsr308.javac]                         ^
+[jsr308.javac]   found   : @UnknownHasNext Iterator
+[jsr308.javac]   required: @HasNext Iterator
+[jsr308.javac] /Users/rashmi/iteration-case-studies/lucene-solr/src/java/org/apache/lucene/search/BooleanQuery.java:231: error: [method.invocation.invalid] call to next() not allowed on the given receiver.
+[jsr308.javac]         BooleanClause c = (BooleanClause) cIter.next();
+[jsr308.javac]                                                     ^
+[jsr308.javac]   found   : @UnknownHasNext Iterator
+[jsr308.javac]   required: @HasNext Iterator
+[jsr308.javac] /Users/rashmi/iteration-case-studies/lucene-solr/src/java/org/apache/lucene/search/BooleanQuery.java:296: error: [method.invocation.invalid] call to next() not allowed on the given receiver.
+[jsr308.javac]         BooleanClause c = (BooleanClause) cIter.next();
+[jsr308.javac]                                                     ^
+[jsr308.javac]   found   : @UnknownHasNext Iterator
+[jsr308.javac]   required: @HasNext Iterator
+[jsr308.javac] /Users/rashmi/iteration-case-studies/lucene-solr/src/java/org/apache/lucene/index/ParallelReader.java:500: error: [method.invocation.invalid] call to next() not allowed on the given receiver.
+[jsr308.javac]         fieldIterator.next();                     // Skip field to get next one
+[jsr308.javac]                           ^
+[jsr308.javac]   found   : @UnknownHasNext Iterator
+[jsr308.javac]   required: @HasNext Iterator
+[jsr308.javac] Note: Some input files use or override a deprecated API.
+[jsr308.javac] Note: Recompile with -Xlint:deprecation for details.
+[jsr308.javac] Note: Some input files use unchecked or unsafe operations.
+[jsr308.javac] Note: Recompile with -Xlint:unchecked for details.
+[jsr308.javac] 5 errors
+
+BUILD FAILED
+/Users/rashmi/iteration-case-studies/lucene-solr/common-build.xml:269: The following error occurred while executing this line:
+/Users/rashmi/iteration-case-studies/lucene-solr/common-build.xml:598: Compile failed; see the compiler error output for details.
+
+Total time: 52 seconds

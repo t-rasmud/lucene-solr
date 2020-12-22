@@ -58,8 +58,8 @@
 
   <property name="javac.deprecation" value="off"/>
   <property name="javac.debug" value="on"/>
-  <property name="javac.source" value="1.4"/>
-  <property name="javac.target" value="1.4"/>
+  <property name="javac.source" value="1.8"/>
+  <property name="javac.target" value="1.8"/>
 
   <property name="javadoc.link" value="http://java.sun.com/j2se/1.4/docs/api/"/>
   <property name="javadoc.access" value="protected"/>
@@ -98,12 +98,25 @@
 
   <property name="manifest.file" location="${common.dir}/build/MANIFEST.MF"/>
 
-  <!-- 
-    we attempt to exec svnversion to get details build information
-    for jar manifests.  this property can be set at runtime to an
-    explicit path as needed, or ant will just try to find it in the
-    default PATH. (this is useful for Hudson)
-  -->
+    <property environment="env"/>
+    <property name="checkerframework" value="${env.CHECKERFRAMEWORK}" />
+    <condition property="cfJavac" value="javac.bat" else="javac">
+        <os family="windows" />
+    </condition>
+    <presetdef name="jsr308.javac">
+        <javac fork="yes" executable="${checkerframework}/checker/bin/${cfJavac}" >
+            <compilerarg value="-version"/>
+            <compilerarg value="-implicit:class"/>
+        </javac>
+    </presetdef>
+
+
+    <!--
+      we attempt to exec svnversion to get details build information
+      for jar manifests.  this property can be set at runtime to an
+      explicit path as needed, or ant will just try to find it in the
+      default PATH. (this is useful for Hudson)
+    -->
   <property name="svnversion.exe" value="svnversion" />
   <property name="svn.exe" value="svn" />
   
@@ -248,6 +261,21 @@
       <fileset dir="src" includes="resources/**"/>
     </copy>
   </target>
+
+    <target name="check-iteration" depends="clean, init, clover"
+            description="Check iteration">
+        <compile-jsr
+                srcdir="src/java"
+                destdir="${build.dir}/classes/java">
+            <classpath refid="classpath"/>
+        </compile-jsr>
+
+        <!-- Copy the resources folder (if existent) -->
+        <copy todir="${build.dir}/classes/java" includeEmptyDirs="false">
+            <globmapper from="resources/*" to="*" handledirsep="yes"/>
+            <fileset dir="src" includes="resources/**"/>
+        </copy>
+    </target>
 
   <target name="compile" depends="compile-core">
     <!-- convenience target to compile core -->
@@ -552,6 +580,34 @@
       </javac>
     </sequential>
   </macrodef>
+
+    <macrodef name="compile-jsr">
+        <attribute name="srcdir"/>
+        <attribute name="destdir"/>
+        <element name="nested" implicit="yes" optional="yes"/>
+
+        <sequential>
+            <mkdir dir="@{destdir}"/>
+            <jsr308.javac
+                    encoding="${build.encoding}"
+                    srcdir="@{srcdir}"
+                    destdir="@{destdir}"
+                    deprecation="${javac.deprecation}"
+                    debug="${javac.debug}"
+                    source="${javac.source}"
+                    target="${javac.target}">
+                <nested/>
+                <compilerarg line="-processor org.checkerframework.checker.iteration.IterationChecker"/>
+                <!-- optional, to not check uses of library methods:
+                  <compilerarg value="-AskipUses=^(java\.awt\.|javax\.swing\.)"/>
+                -->
+                <compilerarg value="-AsuppressWarnings=contracts.conditional.postcondition.not.satisfied,contracts.postcondition.not.satisfied"/>
+                <compilerarg line="-Xmaxerrs 10000"/>
+                <compilerarg line="-Xmaxwarns 10000000"/>
+                <compilerarg line="-Xmaxerrs 10000000"/>
+            </jsr308.javac>
+        </sequential>
+    </macrodef>
 
   <macrodef name="invoke-javacc">
     <attribute name="target"/>
