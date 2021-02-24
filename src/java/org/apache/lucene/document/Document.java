@@ -22,6 +22,8 @@ import org.apache.lucene.search.ScoreDoc; // for javadoc
 import org.apache.lucene.search.Searcher;  // for javadoc
 import org.apache.lucene.index.IndexReader;  // for javadoc
 
+import org.checkerframework.checker.iteration.qual.HasNext;
+
 /** Documents are the unit of indexing and search.
  *
  * A Document is a set of fields.  Each field has a name and a textual value.
@@ -171,19 +173,21 @@ public final class Document implements java.io.Serializable {
     return null;
   }
 
+  class FieldEnumeration implements Enumeration {
+      final Iterator iter = fields.iterator();
+      public boolean hasMoreElements() {
+          return iter.hasNext();
+      }
+      public Object nextElement(@HasNext FieldEnumeration this) {
+          return iter.next();
+      }
+  }
+
   /** Returns an Enumeration of all the fields in a document.
    * @deprecated use {@link #getFields()} instead
    */
   public final Enumeration fields() {
-    return new Enumeration() {
-      final Iterator iter = fields.iterator();
-      public boolean hasMoreElements() {
-        return iter.hasNext();
-      }
-      public Object nextElement() {
-        return iter.next();
-      }
-    };
+    return new FieldEnumeration();
   }
 
   /** Returns a List of all the fields in a document.
