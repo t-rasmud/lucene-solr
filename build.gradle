@@ -26,6 +26,7 @@ plugins {
   id "de.undercouch.download" version "4.0.2" apply false
   id "net.ltgt.errorprone" version "1.2.1" apply false
   id 'com.diffplug.spotless' version "5.8.2" apply false
+  id 'org.checkerframework' version '0.5.16' apply false
 }
 
 apply from: file('gradle/defaults.gradle')
@@ -190,3 +191,19 @@ apply from: file('gradle/hacks/hashmapAssertions.gradle')
 
 apply from: file('gradle/solr/packaging.gradle')
 apply from: file('gradle/solr/solr-forbidden-apis.gradle')
+
+subprojects { subproject ->
+  apply plugin: 'org.checkerframework'
+
+  checkerFramework {
+    checkers = ['org.checkerframework.checker.index.IndexChecker']
+  }
+  if (project.hasProperty("cfLocal")) {
+    def cfHome = String.valueOf(System.getenv("CHECKERFRAMEWORK"))
+    dependencies {
+      compileOnly files(cfHome + "/checker/dist/checker-qual.jar")
+      testCompileOnly files(cfHome + "/checker/dist/checker-qual.jar")
+      checkerFramework files(cfHome + "/checker/dist/checker.jar")
+    }
+  }
+}
